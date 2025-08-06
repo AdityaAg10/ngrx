@@ -1,0 +1,230 @@
+there is actionReducer, controlReducer and metaReducer
+
+npx @angular/cli@19 update @angular/cli @angular/core
+
+rm -r node_modules; rm package-lock.json
+npm install --save-dev @angular/cli@19 --legacy-peer-deps
+npm install --save-dev @angular/core@19 --legacy-peer-deps
+ng update
+npm update
+
+
+npm run server -> npm server
+npm start -> client 
+
+ng g c courses-card-list --project=your-project-name
+
+to add ngrx to the component	-> 	ng generate store auth/Auth --module auth.module.ts
+
+
+to generate the reducer   -> 	ng g feature store/courses --module app.module.ts
+more direct -> ng generate reducer store/courses --module app.module.ts
+
+
+ 
+
+
+
+
+
+
+StoreModule.forFeature(fromAuth.authFeatureKey, authReducer),
+in the auth module, we have set this authreducer, bacically setting store for the feature, that is login purposes
+
+
+
+
+
+
+login() {
+      const val = this.form.value;
+      this.auth.login(val.email, val.password)
+          .pipe(
+              tap(user => {
+                  console.log(user);
+                  this.store.dispatch(login({ user })); 
+                  this.router.navigateByUrl('/courses');
+            })
+        )
+        .subscribe(
+            // no operation in case of successful logging in 
+            noop,
+            () => alert('login failed')
+
+        );
+
+  }
+
+this.store.dispatch(login({ user })); 
+dispatches to the store that some action is happening with payload of user. The reducer in turn catches it and do the actions required on it 
+
+
+
+export const authReducer = createReducer(
+  initialAuthState,
+  on(AuthActions.login, (state, action) => {
+    return {
+      user: action.user,
+      halo: "wtf it works!"
+    }
+  }),
+  
+it gets activated when an auth action is called
+this is the payload which we will be sending to be sent to the store, now some other component will be actually storing it to the store.
+That other compoent is auth effects, which stores this to the localStorage
+
+
+effects module needs to be added in the app module through imports - 
+EffectsModule.forRoot([]),
+
+also need to add it to the authmodeule, this time forFeature
+
+
+
+
+
+
+
+
+
+this.isLoggedIn$ = this.store
+  .pipe(
+	// !! return true if there is a profile, false otherwise
+	map(state => !!state["auth"].user),
+	distinctUntilChanged()
+
+  );
+
+console.log(this, this.isLoggedIn$);
+
+this.isLoggedOut$ = this.store
+  .pipe(
+	// select does the job for both map and removing duplicates (dispatching again and again even when there is no cahnge in the observable). It only sends the value forward when the value is changed.
+	
+	// now we again dont want to do the computation again when the input that is the state doesnt change. So we are going to use a createSelector function under the auth.selector file
+	// one created using createSelector has memory and this saves us extra computations when the input doesnt change
+	select(isLoggedOut)
+  );
+  
+  
+  
+  
+  // createSelector   ->	    Derives data from state
+export const isLoggedin = createSelector(
+    // state => state["auth"], this entire thing was replaced by selectAuthState function
+    selectAuthState,
+    (auth) => !!auth.user
+)
+
+export const isLoggedOut = createSelector(
+    isLoggedin,
+    loggedIn => !loggedIn
+)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Metareducers are like normal reducers, they are invoked before any other reducer
+
+export const metaReducers: MetaReducer<AppState>[] =
+    !environment.production ? [logger] : [];
+	
+	
+[logger] -> the order of the array matters, the item first in the array gets invoked first
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Router Resolver is a special service that runs before the router completes its transition. If target component needs some data from the backend, resolver is the best way to fetch.
+Router will ensure that the target screen does not get displayed if the data is not available first.
+
+In our case, we will be fetching the data from the store
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Using ngrx data to store data - 
+
+in the courses module - 
+const entityMetadata: EntityMetadataMap = {
+  Course: {
+
+  }
+};
+
+constructor(private eds: EntityDefinitionService) {
+    eds.registerMetadataMap(entityMetadata);
+  }
+  
+  
+  
+  
+in the courses-entity service  -
+@Injectable()
+export class CourseEntityService extends EntityCollectionServiceBase<Course>{
+
+    constructor(serviceElementsFactory: EntityCollectionServiceElementsFactory) {
+        super('Course', serviceElementsFactory);
+    }
+}
+
+
+
+we can create a service from to to fetch, store and other commands directly 
+now add this service to the course module 
+
+
+
+
+
+
+
+
+
+
+
+
+
